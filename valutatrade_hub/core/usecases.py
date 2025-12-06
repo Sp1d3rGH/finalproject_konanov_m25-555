@@ -1,5 +1,6 @@
 import valutatrade_hub.core.utils as utils
 import valutatrade_hub.core.models as models
+import valutatrade_hub.core.exceptions as exceptions
 import random
 import string
 import datetime
@@ -10,6 +11,7 @@ PORTFOLIOS_PATH = "data/portfolios.json"
 RATES_PATH = "data/rates.json"
 EXCHANGE_RATES_PATH = "data/exchange_rates.json"
 SALT_LENGTH = 8
+KNOWN_CURRENCIES = ["USD", "EUR", "BTC", "ETH"]
 
 def show_help():
     print("- зарегистрироваться (register);\n"
@@ -180,6 +182,10 @@ def get_rate_user(base_currency, pref_currency):
         raise ValueError("Базовая валюта не задана.")
     if not pref_currency:
         raise ValueError("Целевая валюта не задана.")
+    if base_currency not in KNOWN_CURRENCIES:
+        raise exceptions.CurrencyNotFoundError(base_currency)
+    if pref_currency not in KNOWN_CURRENCIES:
+        raise exceptions.CurrencyNotFoundError(pref_currency)
     converse_way_to = base_currency + '_' + pref_currency
     converse_way_from = pref_currency + '_' + base_currency
     exchange_rates_json = utils.load_json(EXCHANGE_RATES_PATH)

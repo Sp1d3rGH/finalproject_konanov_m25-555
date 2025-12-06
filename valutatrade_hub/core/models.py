@@ -1,12 +1,14 @@
 import hashlib
 import datetime
 import valutatrade_hub.core.utils as utils
+import valutatrade_hub.core.exceptions as exceptions
 
 
 USD_CONVERSION = 1.0
 DATA_DIR = "data"
 RATES_PATH = "data/rates.json"
 EXCHANGE_RATES_PATH = "data/exchange_rates.json"
+KNOWN_CURRENCIES = ["USD", "EUR", "BTC", "ETH"]
 
 class User:
     def __init__(self, user_id=None, username=None, hashed_password=None, salt=None, registration_date=None):
@@ -171,7 +173,7 @@ class Wallet:
         if not isinstance(amount, float):
             raise TypeError(type(amount))
         if self.balance < amount:
-            raise ValueError("На балансе недостаточно средств.")
+            raise exceptions.InsufficientFundsError(self.currency_code, self.balance, amount)
         if amount < 0:
             raise TypeError("Отрицательное значение.")
         self.balance -= amount

@@ -1,7 +1,9 @@
 import shlex
 import valutatrade_hub.core.usecases as usecases
+import valutatrade_hub.decorators as decorators
 
 
+@decorators.handle_errors
 def run():
     current_user = None
     while True:
