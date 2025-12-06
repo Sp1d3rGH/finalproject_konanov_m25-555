@@ -30,7 +30,6 @@ def parse_values(values, pref_types):
     ['123', ...], ['int', ...]
     На выход:
     [123, ...]
-    В случае неудачи приводит значение к типу <str>.
     '''
     if not isinstance(values, list):
         values = [values]
@@ -44,6 +43,11 @@ def parse_values(values, pref_types):
             case "int":
                 try:
                     parsed_values.append(int(values[i]))
+                except ValueError:
+                    raise ValueError(f"Нельзя привести {values[i]} к {pref_types[i]}.")
+            case "float":
+                try:
+                    parsed_values.append(float(values[i]))
                 except ValueError:
                     raise ValueError(f"Нельзя привести {values[i]} к {pref_types[i]}.")
             case "bool":

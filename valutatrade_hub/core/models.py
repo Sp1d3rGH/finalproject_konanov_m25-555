@@ -5,6 +5,8 @@ import valutatrade_hub.core.utils as utils
 
 USD_CONVERSION = 1.0
 DATA_DIR = "data"
+RATES_PATH = "data/rates.json"
+EXCHANGE_RATES_PATH = "data/exchange_rates.json"
 
 class User:
     def __init__(self, user_id=None, username=None, hashed_password=None, salt=None, registration_date=None):
@@ -21,7 +23,6 @@ class User:
         self.hashed_password = self.get_hash(hashed_password + salt)
         self.salt = salt
         self.registration_date = registration_date
-        self.save_to_json()
 
     @property
     def user_id(self):
@@ -32,8 +33,7 @@ class User:
         if not isinstance(value, str):
             raise TypeError(type(value))
         self._user_id = value
-        self.save_to_json()
-    
+
     @property
     def username(self):
         return self._username
@@ -45,8 +45,7 @@ class User:
         if value == '':
             raise ValueError("Имя не может быть пустым.")
         self._username = value
-        self.save_to_json()
-    
+
     @property
     def hashed_password(self):
         return self._hashed_password
@@ -58,8 +57,7 @@ class User:
         if len(value) < 4:
             raise ValueError("Пароль не должен быть короче 4 символов.")
         self._hashed_password = value
-        self.save_to_json()
-    
+
     @property
     def salt(self):
         return self._salt
@@ -69,8 +67,7 @@ class User:
         if not isinstance(value, str):
             raise TypeError(type(value))
         self._salt = value
-        self.save_to_json()
-    
+
     @property
     def registration_date(self):
         return self._registration_date
@@ -80,8 +77,7 @@ class User:
         if not isinstance(value, datetime.datetime):
             raise TypeError(type(value))
         self._registration_date = value
-        self.save_to_json()
-    
+
     @classmethod
     def get_user_info(self):
         print(f"Данные пользователя '{self._username}':\n"
@@ -90,7 +86,6 @@ class User:
     @classmethod
     def change_password(self, new_password=None):
         self.hashed_password = self.get_hash(new_password + self.salt)
-        self.save_to_json()
 
     @classmethod
     def verify_password(self, password):
@@ -194,8 +189,7 @@ class Portfolio:
             raise TypeError("Некорректный тип данных для класса Portfolio.")
         self._user_id = user_id
         self.wallets = wallets
-        self.save_to_json()
-    
+
     @property
     def user_id(self): # ? class 'User' ?
         return self._user_id
@@ -214,8 +208,7 @@ class Portfolio:
             if not isinstance(dictionary[key], Wallet):
                 raise TypeError(type(dictionary[key]))
         self._wallets = dictionary
-        self.save_to_json()
-    
+
     @classmethod
     def add_currency(self, currency_code):
         if not isinstance(currency_code, str):
@@ -223,15 +216,20 @@ class Portfolio:
         if currency_code in self.wallets.keys():
             raise ValueError(f"Счет {currency_code} уже существует.")
         self.wallets[currency_code] = Wallet(currency_code, 0.0)
-        self.save_to_json()
-    
+
     @classmethod
     def get_total_value(self, base_currency='USD'):
         if not isinstance(base_currency, str):
             raise TypeError(type(base_currency))
-        if base_currency not in self.wallets.keys():
-            raise ValueError(f"Счет {base_currency} не существует.")
-        return self.wallets[base_currency].balance * USD_CONVERSION
+        total_value = 0.0
+        for currency in self.wallets.keys():
+            currency_balance = self.wallets[currency].balance
+            result = self.converse_to_base(str(currency), base_currency, currency_balance)
+            total_value += result
+            print(f"- {str(currency)}: {currency_balance}  → {result} {base_currency}")
+        print(f"---------------------------------\n"
+              f"ИТОГО: {total_value} {base_currency}")
+        return total_value
     
     @classmethod
     def get_wallet(self, currency_code):
@@ -257,5 +255,20 @@ class Portfolio:
             })
             save_location = 0
         json_data[save_location]["user_id"] = self.user_id
-        json_data[save_location]["wallets"] = self.wallets
+        wallets_dictionary = {}
+        for key in self.wallets.keys():
+            wallets_dictionary[key] = {
+                "currency_code": self.wallets[key].currency_code,
+                "balance": self.wallets[key].balance
+                }
+        json_data[save_location]["wallets"] = wallets_dictionary
         utils.save_json(json_path, json_data)
+
+    @staticmethod
+    def converse_to_base(current_currency, base_currency, amount):
+        converse_way = current_currency + '_' + base_currency
+        exchange_rates_json = utils.load_json(EXCHANGE_RATES_PATH)
+        if converse_way not in exchange_rates_json.keys():
+            raise ValueError(f"Курс {converse_way} не найден.")
+        multiplier = exchange_rates_json[converse_way]["rate"]
+        return amount * multiplier
