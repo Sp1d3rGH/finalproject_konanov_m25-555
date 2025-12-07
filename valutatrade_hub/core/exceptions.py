@@ -16,7 +16,7 @@ def CurrencyNotFoundError(Exception):
     def __str__(self):
         return f"Неизвестная валюта '{self.code}'"
 
-def ApiRequistError(Exception):
+def ApiRequestError(Exception):
     def __init__(self, message=None):
         super().__init__(message)
 

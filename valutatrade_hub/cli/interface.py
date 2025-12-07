@@ -126,6 +126,10 @@ def run():
                     elif user_args[i-1] in special_args and user_args[i] in special_args:
                         raise IOError("Ошибка синтаксиса:", user_args[i-1], user_args[i])
                 usecases.get_rate_user(input_base, input_pref)
+            case "update-rates":
+                pass
+            case "show-rates":
+                pass
             case "help":
                 usecases.show_help()
             case "exit":
