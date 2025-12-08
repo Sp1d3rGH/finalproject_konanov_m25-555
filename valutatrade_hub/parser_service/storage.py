@@ -1,37 +1,22 @@
 import valutatrade_hub.parser_service.config as config
+import valutatrade_hub.core.utils as utils
 
 
 class StorageUpdater:
     def __init__(self):
-        cfg = config.ParserConfig()
-        self.rates_path = cfg.RATES_FILE_PATH
-        self.history_path = cfg.HISTORY_FILE_PATH
-
-    @classmethod
+        self.cfg = config.ParserConfig()
+    
     def save_rates(self, rates: dict):
-        json_path = DATA_DIR + '/' + json_name
-        json_data = utils.load_json(json_path)
-        save_location = -1
-        for i in range(len(json_data)):
-            if json_data[i]["user_id"] == self.user_id:
-                save_location = i
-                break
-        if save_location < 0 and len(json_data) == 0:
-            json_data.append({
-                "user_id": None,
-                "username": None,
-                "hashed_password": None,
-                "salt": None,
-                "registration_date": None
-            })
-            save_location = 0
-        json_data[save_location]["user_id"] = self.user_id
-        json_data[save_location]["username"] = self.username
-        json_data[save_location]["hashed_password"] = self.hashed_password
-        json_data[save_location]["salt"] = self.salt
-        json_data[save_location]["registration_date"] = self.registration_date
-        utils.save_json(json_path, json_data)
+        json_data = utils.load_json(self.cfg.RATES_FILE_PATH)
+        for key, value in rates["pairs"]:
+            json_data["pairs"][key] = value
+        json_data["last_refresh"] = rates["last_refresh"]
+        utils.save_json(self.cfg.RATES_FILE_PATH, json_data)
 
-    @classmethod
-    def save_history(self, history: dict):
-        pass
+    def save_history(self, history_entry: dict):
+        json_data = utils.load_json(self.cfg.HISTORY_FILE_PATH)
+        for key, value in history_entry:
+            if key in json_data.keys():
+                raise ValueError("Такая запись в истории уже существует.")
+            json_data.update({key: value})
+        utils.save_json(self.cfg.HISTORY_FILE_PATH)

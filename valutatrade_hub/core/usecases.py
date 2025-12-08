@@ -1,17 +1,13 @@
 import valutatrade_hub.core.utils as utils
 import valutatrade_hub.core.models as models
+import valutatrade_hub.core.currencies as currencies
 import valutatrade_hub.core.exceptions as exceptions
+import valutatrade_hub.infra.settings as settings
+import valutatrade_hub.parser_service.config as config
 import random
 import string
 import datetime
 
-
-USERS_PATH = "data/users.json"
-PORTFOLIOS_PATH = "data/portfolios.json"
-RATES_PATH = "data/rates.json"
-EXCHANGE_RATES_PATH = "data/exchange_rates.json"
-SALT_LENGTH = 8
-KNOWN_CURRENCIES = ["USD", "EUR", "BTC", "ETH"]
 
 def show_help():
     print("- зарегистрироваться (register);\n"
@@ -21,20 +17,21 @@ def show_help():
     "- продать валюту (sell);\n"
     "- получить курс валюты (get-rate).")
 
-def generate_salt(length=4):
+def generate_salt(length):
     salt = ''
     for i in range(length):
         salt += random.choice(string.printable)
     return str(salt)
 
 def register_user(name=None, password=None):
+    params = settings.SettingsLoader()
     if not name:
         raise ValueError("Имя пользователя не задано.")
     if not password:
         raise ValueError("Пароль не задан.")
     if len(password) < 4:
         raise ValueError("Пароль слишком короткий.")
-    users_data = utils.load_json(USERS_PATH)
+    users_data = utils.load_json(params.USERS_PATH)
     for i in range(len(users_data)):
         if users_data[i]["username"] == name:
             raise ValueError("Такое имя уже существует.")
@@ -43,20 +40,31 @@ def register_user(name=None, password=None):
         if user_id < users_data[i]["user_id"]:
             user_id = users_data[i]["user_id"]
     user_id = i + 1
-    salt = generate_salt(length=SALT_LENGTH)
+    salt = generate_salt(length=params.SALT_LENGTH)
     current_time = datetime.datetime.now()
     new_user = models.User(user_id, name, password, salt, current_time)
     new_user.save_to_json()
     new_portfolio = models.Portfolio(user_id, dict())
     new_portfolio.save_to_json()
+    logging_data = {
+        "operation": "REGISTER",
+        "user": name,
+        "currency": '',
+        "was_amount": '',
+        "amount": '',
+        "rate": '',
+        "base": ''
+    }
+    return new_user, logging_data
     # return new_user, new_portfolio
 
 def login_user(name=None, password=None):
+    params = settings.SettingsLoader()
     if not name:
         raise ValueError("Имя пользователя не задано.")
     if not password:
         raise ValueError("Пароль не задан.")
-    users_data = utils.load_json(USERS_PATH)
+    users_data = utils.load_json(params.USERS_PATH)
     for i in range(len(users_data)):
         if users_data[i]["username"] == name:
             existing_user = models.User(user_id=
@@ -72,12 +80,22 @@ def login_user(name=None, password=None):
             if not existing_user.verify_password(password):
                 raise ValueError("Пароль неверный.")
             else:
-                return existing_user
+                logging_data = {
+                    "operation": "LOGIN",
+                    "user": name,
+                    "currency": '',
+                    "was_amount": '',
+                    "amount": '',
+                    "rate": '',
+                    "base": ''
+                }
+                return existing_user, logging_data
     raise ValueError("Пользователь не найден.")
 
 def show_portfolio(base_currency, existing_user):
+    params = settings.SettingsLoader()
     current_id = existing_user.user_id
-    portfolios_data = utils.load_json(PORTFOLIOS_PATH)
+    portfolios_data = utils.load_json(params.PORTFOLIOS_PATH)
     current_wallets = {}
     for i in range(len(portfolios_data)):
         if portfolios_data[i]["user_id"] == current_id:
@@ -100,13 +118,14 @@ def show_portfolio(base_currency, existing_user):
     existing_portfolio.get_total_value(base_currency)
 
 def buy_by_user(currency, amount, existing_user):
-    if not currency:
-        raise ValueError("Валюта не задана.")
+    params = settings.SettingsLoader()
+    cfg = config.ParserConfig()
+    currency = currencies.get_currency(currency)
     if not amount:
         raise ValueError("Значение не задано.")
     amount = utils.parse_values(amount, 'float')[0]
     current_id = existing_user.user_id
-    portfolios_data = utils.load_json(PORTFOLIOS_PATH)
+    portfolios_data = utils.load_json(params.PORTFOLIOS_PATH)
     current_wallets = {}
     for i in range(len(portfolios_data)):
         if portfolios_data[i]["user_id"] == current_id:
@@ -122,30 +141,41 @@ def buy_by_user(currency, amount, existing_user):
                                             current_id,
                                           wallets=
                                             current_wallets)
-    if currency not in existing_portfolio.wallets.keys():
-        existing_portfolio.add_currency(currency)
-    balance_before = existing_portfolio.get_wallet(currency).balance
-    existing_portfolio.get_wallet(currency).deposit(amount)
-    base_currency = 'USD'
-    converse_way = currency + '_' + base_currency
-    exchange_rates_json = utils.load_json(EXCHANGE_RATES_PATH)
-    if converse_way not in exchange_rates_json.keys():
+    if currency.code not in existing_portfolio.wallets.keys():
+        existing_portfolio.add_currency(currency.code)
+    balance_before = existing_portfolio.get_wallet(currency.code).balance
+    existing_portfolio.get_wallet(currency.code).deposit(amount)
+    base_currency = cfg.BASE_CURRENCY
+    converse_way = currency.code + '_' + base_currency
+    rates_json = utils.load_json(cfg.RATES_FILE_PATH)
+    if converse_way not in rates_json["pairs"].keys():
         raise ValueError(f"Курс {converse_way} не найден.")
-    multiplier = float(exchange_rates_json[converse_way]["rate"])
-    print(f"Покупка выполнена: {amount} {currency} по курсу {multiplier} {converse_way}\n"
+    multiplier = float(rates_json["pairs"][converse_way]["rate"])
+    print(f"Покупка выполнена: {amount} {currency.code} по курсу {multiplier} {converse_way}\n"
           f"Изменения в портфеле:\n"
-          f"- {currency}: было {balance_before} → стало {balance_before + amount}\n"
+          f"- {currency.code}: было {balance_before} → стало {balance_before + amount}\n"
           f"Оценочная стоимость покупки: {amount * multiplier} {base_currency}")
     existing_portfolio.save_to_json()
+    logging_data = {
+        "operation": "BUY",
+        "user": existing_user.username,
+        "currency": currency.code,
+        "was_amount": balance_before,
+        "amount": amount,
+        "rate": multiplier,
+        "base": base_currency
+    }
+    return existing_user, logging_data
 
 def sell_by_user(currency, amount, existing_user):
-    if not currency:
-        raise ValueError("Валюта не задана.")
+    params = settings.SettingsLoader()
+    cfg = config.ParserConfig()
+    currency = currencies.get_currency(currency)
     if not amount:
         raise ValueError("Значение не задано.")
     amount = utils.parse_values(amount, 'float')[0]
     current_id = existing_user.user_id
-    portfolios_data = utils.load_json(PORTFOLIOS_PATH)
+    portfolios_data = utils.load_json(params.PORTFOLIOS_PATH)
     current_wallets = {}
     for i in range(len(portfolios_data)):
         if portfolios_data[i]["user_id"] == current_id:
@@ -161,41 +191,82 @@ def sell_by_user(currency, amount, existing_user):
                                             current_id,
                                           wallets=
                                             current_wallets)
-    if currency not in existing_portfolio.wallets.keys():
-        raise ValueError(f"Кошелек с '{currency}' не существует.")
-    balance_before = existing_portfolio.get_wallet(currency).balance
-    existing_portfolio.get_wallet(currency).withdraw(amount)
-    base_currency = 'USD'
-    converse_way = currency + '_' + base_currency
-    exchange_rates_json = utils.load_json(EXCHANGE_RATES_PATH)
-    if converse_way not in exchange_rates_json.keys():
+    if currency.code not in existing_portfolio.wallets.keys():
+        raise ValueError(f"Кошелек с '{currency.code}' не существует.")
+    balance_before = existing_portfolio.get_wallet(currency.code).balance
+    existing_portfolio.get_wallet(currency.code).withdraw(amount)
+    base_currency = cfg.BASE_CURRENCY
+    converse_way = currency.code + '_' + base_currency
+    rates_json = utils.load_json(cfg.RATES_FILE_PATH)
+    if converse_way not in rates_json["pairs"].keys():
         raise ValueError(f"Курс {converse_way} не найден.")
-    multiplier = float(exchange_rates_json[converse_way]["rate"])
-    print(f"Продажа выполнена: {amount} {currency} по курсу {multiplier} {converse_way}\n"
+    multiplier = float(rates_json["pairs"][converse_way]["rate"])
+    print(f"Продажа выполнена: {amount} {currency.code} по курсу {multiplier} {converse_way}\n"
           f"Изменения в портфеле:\n"
-          f"- {currency}: было {balance_before} → стало {balance_before - amount}\n"
+          f"- {currency.code}: было {balance_before} → стало {balance_before - amount}\n"
           f"Оценочная выручка: {amount * multiplier} {base_currency}")
     existing_portfolio.save_to_json()
+    logging_data = {
+        "operation": "SELL",
+        "user": existing_user.username,
+        "currency": currency.code,
+        "was_amount": balance_before,
+        "amount": amount,
+        "rate": multiplier,
+        "base": base_currency
+    }
+    return existing_user, logging_data
 
 def get_rate_user(base_currency, pref_currency):
-    if not base_currency:
-        raise ValueError("Базовая валюта не задана.")
-    if not pref_currency:
-        raise ValueError("Целевая валюта не задана.")
-    if base_currency not in KNOWN_CURRENCIES:
-        raise exceptions.CurrencyNotFoundError(base_currency)
-    if pref_currency not in KNOWN_CURRENCIES:
-        raise exceptions.CurrencyNotFoundError(pref_currency)
-    converse_way_to = base_currency + '_' + pref_currency
-    converse_way_from = pref_currency + '_' + base_currency
-    exchange_rates_json = utils.load_json(EXCHANGE_RATES_PATH)
-    if converse_way_to not in exchange_rates_json.keys():
+    cfg = config.ParserConfig()
+    base_currency = currencies.get_currency(base_currency)
+    pref_currency = currencies.get_currency(pref_currency)
+    converse_way_to = base_currency.code + '_' + pref_currency.code
+    converse_way_from = pref_currency.code + '_' + base_currency.code
+    rates_json = utils.load_json(cfg.RATES_FILE_PATH)
+    if converse_way_to not in rates_json["pairs"].keys():
         raise ValueError(f"Курс {converse_way_to} не найден.")
-    if converse_way_from not in exchange_rates_json.keys():
+    if converse_way_from not in rates_json["pairs"].keys():
         raise ValueError(f"Курс {converse_way_from} не найден.")
-    multiplier_to = float(exchange_rates_json[converse_way_to]["rate"])
-    date_stamp_to = datetime.datetime(exchange_rates_json[converse_way_to]["rate"])
-    multiplier_from = float(exchange_rates_json[converse_way_from]["rate"])
-    # date_stamp_from = datetime.datetime(exchange_rates_json[converse_way_from]["rate"])
-    print(f"Курс {base_currency}→{pref_currency}: {multiplier_to} (обновлено: {date_stamp_to})\n"
-          f"Обратный курс {pref_currency}→{base_currency}: {multiplier_from}")
+    multiplier_to = float(rates_json["pairs"][converse_way_to]["rate"])
+    date_stamp_to = rates_json["pairs"][converse_way_to]["updated_at"]
+    multiplier_from = float(rates_json["pairs"][converse_way_from]["rate"])
+    # date_stamp_from = rates_json["pairs"][converse_way_from]["updated_at"]
+    print(f"Курс {base_currency.code}→{pref_currency.code}: {multiplier_to} (обновлено: {date_stamp_to})\n"
+          f"Обратный курс {pref_currency.code}→{base_currency.code}: {multiplier_from}")
+
+def show_rates_user(from_currency, top, to_currency):
+    cfg = config.ParserConfig()
+    rates_json = utils.load_json(cfg.RATES_FILE_PATH)
+    requested_rates = {}
+    for key, value in rates_json["pairs"]:
+        key_from = str(key).split('_')[0]
+        key_to = str(key).split('_')[1]
+        if from_currency:
+            if to_currency:
+                if from_currency == key_from and to_currency == key_to:
+                    requested_rates[key] = float(value["rate"])
+            else:
+                if from_currency == key_from:
+                    requested_rates[key] = float(value["rate"])
+        else:
+            if to_currency:
+                if to_currency == key_to:
+                    requested_rates[key] = float(value["rate"])
+            else:
+                requested_rates[key] = float(value["rate"])
+    if len(requested_rates) == 0:
+        print("Не найдено курсов по такому фильтру.")
+    else:
+        print(f"Курсы валют из кэша (обновлено в {rates_json["last_refresh"]})")
+        sorted_rates = {entry[0]: entry[1] for entry in sorted(requested_rates.items(), key=lambda arr:arr[1], reverse=True)}
+        if not top:
+            for key, value in sorted_rates:
+                print(f"- {str(key)}: {value}")
+        else:
+            top = utils.parse_values(top, int)[0]
+            for key, value in sorted_rates:
+                if top <= 0:
+                    break
+                print(f"- {str(key)}: {value}")
+                top -= 1

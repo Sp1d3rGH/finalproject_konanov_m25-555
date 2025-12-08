@@ -2,13 +2,9 @@ import hashlib
 import datetime
 import valutatrade_hub.core.utils as utils
 import valutatrade_hub.core.exceptions as exceptions
+import valutatrade_hub.infra.settings as settings
+import valutatrade_hub.parser_service.config as config
 
-
-USD_CONVERSION = 1.0
-DATA_DIR = "data"
-RATES_PATH = "data/rates.json"
-EXCHANGE_RATES_PATH = "data/exchange_rates.json"
-KNOWN_CURRENCIES = ["USD", "EUR", "BTC", "ETH"]
 
 class User:
     def __init__(self, user_id=None, username=None, hashed_password=None, salt=None, registration_date=None):
@@ -82,8 +78,10 @@ class User:
 
     @classmethod
     def get_user_info(self):
-        print(f"Данные пользователя '{self._username}':\n"
-              f"{self._registration_date}")
+        reg_date = self.registration_date
+        print(f"Данные пользователя '{self.username}':\n"
+              f"- ID в системе: {self.user_id}\n"
+              f"- Дата регистрации: {reg_date.strftime("%Y-%m-%d %H:%M:%S")}")
 
     @classmethod
     def change_password(self, new_password=None):
@@ -95,8 +93,9 @@ class User:
         return password == pass_to_check
     
     @classmethod
-    def save_to_json(self, json_name="users.json"):
-        json_path = DATA_DIR + '/' + json_name
+    def save_to_json(self):
+        params = settings.SettingsLoader()
+        json_path = params.USERS_PATH
         json_data = utils.load_json(json_path)
         save_location = -1
         for i in range(len(json_data)):
@@ -193,7 +192,7 @@ class Portfolio:
         self.wallets = wallets
 
     @property
-    def user_id(self): # ? class 'User' ?
+    def user_id(self):
         return self._user_id
     
     @property
@@ -213,10 +212,14 @@ class Portfolio:
 
     @classmethod
     def add_currency(self, currency_code):
+        cfg = config.ParserConfig()
         if not isinstance(currency_code, str):
             raise TypeError(type(currency_code))
         if currency_code in self.wallets.keys():
             raise ValueError(f"Счет {currency_code} уже существует.")
+        if (currency_code not in cfg.FIAT_CURRENCIES and
+            currency_code not in cfg.CRYPTO_CURRENCIES):
+            raise exceptions.CurrencyNotFoundError(currency_code)
         self.wallets[currency_code] = Wallet(currency_code, 0.0)
 
     @classmethod
@@ -242,8 +245,9 @@ class Portfolio:
         return self.wallets[currency_code]
 
     @classmethod
-    def save_to_json(self, json_name="portfolios.json"):
-        json_path = DATA_DIR + '/' + json_name
+    def save_to_json(self):
+        params = settings.SettingsLoader()
+        json_path = params.PORTFOLIOS_PATH
         json_data = utils.load_json(json_path)
         save_location = -1
         for i in range(len(json_data)):
@@ -268,9 +272,10 @@ class Portfolio:
 
     @staticmethod
     def converse_to_base(current_currency, base_currency, amount):
+        cfg = config.ParserConfig()
         converse_way = current_currency + '_' + base_currency
-        exchange_rates_json = utils.load_json(EXCHANGE_RATES_PATH)
-        if converse_way not in exchange_rates_json.keys():
+        rates_json = utils.load_json(cfg.RATES_FILE_PATH)
+        if converse_way not in rates_json["pairs"].keys():
             raise ValueError(f"Курс {converse_way} не найден.")
-        multiplier = exchange_rates_json[converse_way]["rate"]
+        multiplier = float(rates_json["pairs"][converse_way]["rate"])
         return amount * multiplier

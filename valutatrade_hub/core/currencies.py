@@ -1,11 +1,9 @@
 import valutatrade_hub.core.exceptions as exceptions
+import valutatrade_hub.parser_service.config as config
 
-
-KNOWN_FIAT_CURRENCIES = ["USD", "EUR"]
-KNOWN_CRYP_CURRENCIES = ["BTC", "ETH"]
 
 class Currency:
-    def __init__(self, name=None, code=None):
+    def __init__(self, code=None, name=None):
         if (isinstance(name, str) and
             isinstance(code, str)):
             pass
@@ -45,7 +43,7 @@ class Currency:
         print(f"{self.code} — {self.name}")
 
 class FiatCurrency(Currency):
-    def __init__(self, name=None, code=None, issuing_country=None):
+    def __init__(self, code=None, name=None, issuing_country=None):
         super().__init__(name, code)
         self.issuing_country = issuing_country
     
@@ -65,7 +63,7 @@ class FiatCurrency(Currency):
         print(f"[FIAT] {self.code} — {self.name} (Issuing: {self.issuing_country})")
 
 class CryptoCurrency(Currency):
-    def __init__(self, name=None, code=None, algorithm=None, market_cap=None):
+    def __init__(self, code=None, name=None, algorithm=None, market_cap=None):
         super().__init__(name, code)
         self.algorithm = algorithm
         self.market_cap = market_cap
@@ -97,9 +95,12 @@ class CryptoCurrency(Currency):
         print(f"[CRYPTO] {self.code} — {self.name} (Algo: {self.algorithm}, MCAP: {self.market_cap})")
 
 def get_currency(code):
-    if code in KNOWN_FIAT_CURRENCIES:
-        return CryptoCurrency(code)
-    elif code in KNOWN_CRYP_CURRENCIES:
-        return FiatCurrency(code)
+    cfg = config.ParserConfig()
+    if code in cfg.CRYPTO_CURRENCIES:
+        name = cfg.CRYPTO_ID_MAP[code]
+        return CryptoCurrency(code, name)
+    elif code in cfg.FIAT_CURRENCIES:
+        name = cfg.FIAT_ID_MAP[code]
+        return FiatCurrency(code, name)
     else:
         raise exceptions.CurrencyNotFoundError(code)

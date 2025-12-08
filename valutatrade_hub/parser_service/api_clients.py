@@ -5,11 +5,14 @@ import valutatrade_hub.parser_service.config as config
 
 
 class BaseApiClient:
-    def fetch_rates():
+    def __init__(self):
+        self.cfg = config.ParserConfig()
+
+    def fetch_rates(self):
         return None
 
 class CoinGeckoClient(BaseApiClient):
-    def fetch_rates():
+    def fetch_rates(self):
         '''
         Парсит данные: {
             "bitcoin":  { "usd": 59337.21 },
@@ -21,34 +24,33 @@ class CoinGeckoClient(BaseApiClient):
             ...
         }
         '''
-        cfg = config.ParserConfig()
         line_ids = ""
-        for currency in cfg.CRYPTO_CURRENCIES:
-            currency_id = cfg.CRYPTO_ID_MAP[currency]
+        for currency in self.cfg.CRYPTO_CURRENCIES:
+            currency_id = self.cfg.CRYPTO_ID_MAP[currency]
             line_ids += currency_id + ','
         line_ids = line_ids[:-1]
         # https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum,solana&vs_currencies=usd
-        url = cfg.COINGECKO_URL + "?ids=" + line_ids + "&vs_currencies=" + cfg.BASE_CURRENCY.lower()
+        url = self.cfg.COINGECKO_URL + "?ids=" + line_ids + "&vs_currencies=" + self.cfg.BASE_CURRENCY.lower()
         try:
             crypto_info = requests.get(url).json()
             update_time = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             result = {}
             for key in crypto_info.keys():
-                for cur, val in cfg.CRYPTO_ID_MAP:
+                for cur, val in self.cfg.CRYPTO_ID_MAP:
                     if str(key) == val:
                         parsed_cur = cur
                         break
-                result[parsed_cur + "_" + cfg.BASE_CURRENCY] = {
-                    "rate": crypto_info[key][cfg.BASE_CURRENCY.lower()],
+                result[parsed_cur + "_" + self.cfg.BASE_CURRENCY] = {
+                    "rate": crypto_info[key][self.cfg.BASE_CURRENCY.lower()],
                     "updated_at": update_time,
                     "source": "CoinGecko"
                 }
             return result
-        except requests.RequestException as e:
+        except requests.RequestException:
             raise exceptions.ApiRequestError("Ошибка обращения к 'api.coingeckoo.com'.")
 
 class ExchangeRateApiClient(BaseApiClient):
-    def fetch_rates():
+    def fetch_rates(self):
         '''
         Парсит данные: {
             "result":"success",
@@ -72,21 +74,20 @@ class ExchangeRateApiClient(BaseApiClient):
             ...
         }
         '''
-        cfg = config.ParserConfig()
         # https://v6.exchangerate-api.com/v6/1e0758931d900d0ccdbe6ed2/latest/USD
-        url = cfg.EXCHANGERATE_API_URL + "/" + cfg.EXCHANGERATE_API_KEY + "/latest/" + cfg.BASE_CURRENCY
+        url = self.cfg.EXCHANGERATE_API_URL + "/" + self.cfg.EXCHANGERATE_API_KEY + "/latest/" + self.cfg.BASE_CURRENCY
         try:
             fiat_info = requests.get(url).json()
             if fiat_info["result"] != "success":
                 raise exceptions.ApiRequestError("Ошибка обращения к 'v6.exchangerate-api.com'.")
             update_time = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             result = {}
-            for currency in cfg.FIAT_CURRENCIES:
-                result[currency + "_" + cfg.BASE_CURRENCY] = {
+            for currency in self.cfg.FIAT_CURRENCIES:
+                result[currency + "_" + self.cfg.BASE_CURRENCY] = {
                     "rate": fiat_info["conversion_rates"][currency],
                     "updated_at": update_time,
                     "source": "ExchangeRate-API"
                 }
             return result
-        except requests.RequestException as e:
+        except requests.RequestException:
             raise exceptions.ApiRequestError("Ошибка обращения к 'v6.exchangerate-api.com'.")
