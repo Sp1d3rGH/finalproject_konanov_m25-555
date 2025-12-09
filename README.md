@@ -1,7 +1,7 @@
 # Сервис ValutaTrade Hub
 
 Проект реализует сервис хранения и обмена валютами.
-Данные курсов берутся из публичных API [CoinGecko](www.coingecko.com) и [ExchangeRate](https://www.exchangerate-api.com/).
+Данные курсов берутся из публичных API [CoinGecko](https://www.coingecko.com) и [ExchangeRate](https://www.exchangerate-api.com/).
 Пользователь может смотреть обменные курсы валют, покупать, продавать и хранить их в кошельке.
 
 Поддерживаемые валюты: `USD`, `EUR`, `RUB`, `GBP`, `BTC`, `SOL`, `ETH`.
