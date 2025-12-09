@@ -1,1 +1,1 @@
-{"DATAPATH": "data","RATES_TTL_SECONDS": 10,"DEFAULT_CURRENCY": "USD","LOGS_PATH": "logs/actions.log","USERS_PATH": "data/users.json","PORTFOLIOS_PATH": "data/portfolios.json","SALT_LENGTH": 8}
+{"DATAPATH": "data","RATES_TTL_SECONDS": 600,"DEFAULT_CURRENCY": "USD","LOGS_PATH": "logs/actions.log","USERS_PATH": "data/users.json","PORTFOLIOS_PATH": "data/portfolios.json","SALT_LENGTH": 8}

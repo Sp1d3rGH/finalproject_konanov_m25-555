@@ -10,7 +10,7 @@ class RatesUpdater:
                  crypto_api: api_clients.CoinGeckoClient,
                  fiat_api: api_clients.ExchangeRateApiClient,
                  storage: storage.StorageUpdater,
-                 input_source):
+                 input_source: str = ''):
         self.crypto_api = crypto_api
         self.fiat_api = fiat_api
         self.storage = storage
@@ -18,6 +18,12 @@ class RatesUpdater:
         self.cfg = config.ParserConfig()
 
     def run_update(self):
+        '''
+        Обращается к api_clients, чтобы получить курсы обмена валют,
+        указанных в файлах конфигурации. После чего вызывает
+        storage чтобы обновить данные в директорях.
+        Работает с файлами "rates.json" и "exchange_rates.json".
+        '''
         errors = False
         rates = {"pairs": {}}
         update_crypto = True
@@ -29,31 +35,31 @@ class RatesUpdater:
                 update_crypto = False
             case '':
                 pass
+            case _:
+                raise exceptions.ApiRequestError(f"Неизвестное API '{self.input_source}'.")
         print("INFO: Обновление курсов валют...")
         if update_crypto == True:
             try:
                 print("INFO: Запрос с CoinGecko...", end='')
                 crypto_output = {}
                 crypto_output = self.crypto_api.fetch_rates()
-                print(f"OK ({len(crypto_output)})")
+                print(f"OK ({len(crypto_output)} rates)")
+                for key_rate in crypto_output:
+                    rates["pairs"][key_rate] = crypto_output[key_rate]
             except exceptions.ApiRequestError as e:
                 errors = True
                 print(f"ERROR ({e})")
-        elif update_fiat == True:
+        if update_fiat == True:
             try:
                 print("INFO: Запрос с ExchangeRate-API...", end='')
                 fiat_output = {}
                 fiat_output = self.fiat_api.fetch_rates()
-                print(f"OK ({len(fiat_output)})")
+                print(f"OK ({len(fiat_output)} rates)")
+                for key_rate in fiat_output:
+                    rates["pairs"][key_rate] = fiat_output[key_rate]
             except exceptions.ApiRequestError as e:
                 errors = True
                 print(f"ERROR ({e})")
-        else:
-            raise exceptions.ApiRequestError("Не выбраны сервисы для обращения.")
-        for key_rate in crypto_output:
-            rates["pairs"][key_rate] = crypto_output[key_rate]
-        for key_rate in fiat_output:
-            rates["pairs"][key_rate] = fiat_output[key_rate]
         rates["last_refresh"] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         print(f"INFO: Запись {len(rates["pairs"])} курсов "
               f"в {self.cfg.RATES_FILE_PATH}...")
@@ -61,11 +67,13 @@ class RatesUpdater:
         if not errors:
             print(f"Обновление успешно. "
                   f"Всего обновленных записей: {len(rates["pairs"])}. "
-                  f"Последнее обновление: {rates["last_refresh"]}")
+                  f"Последнее обновление: {rates["last_refresh"]}.")
         else:
-            print(f"Обновление выполнено с ошибками.")
+            print(f"Обновление выполнено с ошибками. "
+                  f"Всего обновленных записей: {len(rates["pairs"])}. "
+                  f"Последнее обновление: {rates["last_refresh"]}.")
         history_update = {}
-        for key, value in rates["pairs"]:
+        for key, value in rates["pairs"].items():
             history_from_currency = str(key).split('_')[0]
             history_to_currency = str(key).split('_')[1]
             history_rate = value["rate"]

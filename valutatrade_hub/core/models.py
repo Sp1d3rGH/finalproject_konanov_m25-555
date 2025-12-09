@@ -16,11 +16,11 @@ class User:
             pass
         else:
             raise TypeError("Некорректный тип данных для класса User.")
-        self.user_id = user_id
-        self.username = username
-        self.hashed_password = self.get_hash(hashed_password + salt)
-        self.salt = salt
-        self.registration_date = registration_date
+        self._user_id = user_id
+        self._username = username
+        self._hashed_password = self.get_hash(hashed_password + salt)
+        self._salt = salt
+        self._registration_date = registration_date
 
     @property
     def user_id(self):
@@ -76,54 +76,25 @@ class User:
             raise TypeError(type(value))
         self._registration_date = value
 
-    @classmethod
     def get_user_info(self):
         reg_date = self.registration_date
         print(f"Данные пользователя '{self.username}':\n"
               f"- ID в системе: {self.user_id}\n"
               f"- Дата регистрации: {reg_date.strftime("%Y-%m-%d %H:%M:%S")}")
 
-    @classmethod
     def change_password(self, new_password=None):
         self.hashed_password = self.get_hash(new_password + self.salt)
 
-    @classmethod
     def verify_password(self, password):
         pass_to_check = self.get_hash(password + self.salt)
-        return password == pass_to_check
-    
-    @classmethod
-    def save_to_json(self):
-        params = settings.SettingsLoader()
-        json_path = params.USERS_PATH
-        json_data = utils.load_json(json_path)
-        save_location = -1
-        for i in range(len(json_data)):
-            if json_data[i]["user_id"] == self.user_id:
-                save_location = i
-                break
-        if save_location < 0 and len(json_data) == 0:
-            json_data.append({
-                "user_id": None,
-                "username": None,
-                "hashed_password": None,
-                "salt": None,
-                "registration_date": None
-            })
-            save_location = 0
-        json_data[save_location]["user_id"] = self.user_id
-        json_data[save_location]["username"] = self.username
-        json_data[save_location]["hashed_password"] = self.hashed_password
-        json_data[save_location]["salt"] = self.salt
-        json_data[save_location]["registration_date"] = self.registration_date
-        utils.save_json(json_path, json_data)
+        return self.hashed_password == pass_to_check
 
     @staticmethod
     def get_hash(string):
         if not isinstance(string, str):
             raise TypeError(type(string))
         sha256 = hashlib.sha256()
-        sha256.update(string)
+        sha256.update(string.encode("utf-8"))
         sha256_string = sha256.hexdigest()
         return sha256_string
 
@@ -134,8 +105,8 @@ class Wallet:
             pass
         else:
             raise TypeError("Некорректный тип данных для класса Wallet.")
-        self.currency_code = currency_code
-        self.balance = balance
+        self._currency_code = currency_code
+        self._balance = balance
 
     @property
     def currency_code(self):
@@ -156,40 +127,37 @@ class Wallet:
         if not isinstance(value, float):
             raise TypeError(type(value))
         if value < 0:
-            raise TypeError("Отрицательное значение.")
+            raise ValueError("Отрицательное значение.")
         self._balance = value
     
-    @classmethod
     def deposit(self, amount):
         if not isinstance(amount, float):
             raise TypeError(type(amount))
         if amount < 0:
-            raise TypeError("Отрицательное значение.")
+            raise ValueError("Отрицательное значение.")
         self.balance += amount
 
-    @classmethod
     def withdraw(self, amount):
         if not isinstance(amount, float):
             raise TypeError(type(amount))
         if self.balance < amount:
             raise exceptions.InsufficientFundsError(self.currency_code, self.balance, amount)
         if amount < 0:
-            raise TypeError("Отрицательное значение.")
+            raise ValueError("Отрицательное значение.")
         self.balance -= amount
     
-    @classmethod
     def get_balance_info(self):
         print("Доступные средства:", self.balance, self.currency_code)
 
 class Portfolio:
     def __init__(self, user_id=None, wallets=None):
-        if (isinstance(user_id, str) and
+        if (isinstance(user_id, int) and
             isinstance(wallets, dict)):
             pass
         else:
             raise TypeError("Некорректный тип данных для класса Portfolio.")
         self._user_id = user_id
-        self.wallets = wallets
+        self._wallets = wallets
 
     @property
     def user_id(self):
@@ -210,7 +178,6 @@ class Portfolio:
                 raise TypeError(type(dictionary[key]))
         self._wallets = dictionary
 
-    @classmethod
     def add_currency(self, currency_code):
         cfg = config.ParserConfig()
         if not isinstance(currency_code, str):
@@ -222,7 +189,6 @@ class Portfolio:
             raise exceptions.CurrencyNotFoundError(currency_code)
         self.wallets[currency_code] = Wallet(currency_code, 0.0)
 
-    @classmethod
     def get_total_value(self, base_currency='USD'):
         if not isinstance(base_currency, str):
             raise TypeError(type(base_currency))
@@ -236,7 +202,6 @@ class Portfolio:
               f"ИТОГО: {total_value} {base_currency}")
         return total_value
     
-    @classmethod
     def get_wallet(self, currency_code):
         if not isinstance(currency_code, str):
             raise TypeError(type(currency_code))
@@ -244,38 +209,63 @@ class Portfolio:
             raise ValueError(f"Счет {currency_code} не существует.")
         return self.wallets[currency_code]
 
-    @classmethod
-    def save_to_json(self):
-        params = settings.SettingsLoader()
-        json_path = params.PORTFOLIOS_PATH
-        json_data = utils.load_json(json_path)
-        save_location = -1
-        for i in range(len(json_data)):
-            if json_data[i]["user_id"] == self.user_id:
-                save_location = i
-                break
-        if save_location < 0 and len(json_data) == 0:
-            json_data.append({
-                "user_id": None,
-                "wallets": {}
-            })
-            save_location = 0
-        json_data[save_location]["user_id"] = self.user_id
-        wallets_dictionary = {}
-        for key in self.wallets.keys():
-            wallets_dictionary[key] = {
-                "currency_code": self.wallets[key].currency_code,
-                "balance": self.wallets[key].balance
-                }
-        json_data[save_location]["wallets"] = wallets_dictionary
-        utils.save_json(json_path, json_data)
-
     @staticmethod
     def converse_to_base(current_currency, base_currency, amount):
         cfg = config.ParserConfig()
         converse_way = current_currency + '_' + base_currency
         rates_json = utils.load_json(cfg.RATES_FILE_PATH)
+        if not rates_json:
+            raise ValueError("Кэш валют пуст. Воспользуйтесь командой 'update-rates'.")
         if converse_way not in rates_json["pairs"].keys():
             raise ValueError(f"Курс {converse_way} не найден.")
         multiplier = float(rates_json["pairs"][converse_way]["rate"])
         return amount * multiplier
+
+def save_into_json(model_class):
+    params = settings.SettingsLoader()
+    if isinstance(model_class, User):
+        json_path = params.USERS_PATH
+        json_data = utils.load_json(json_path)
+        save_location = -1
+        for i in range(len(json_data)):
+            if json_data[i]["user_id"] == model_class.user_id:
+                save_location = i
+                break
+        if save_location < 0:
+            json_data.append({
+                "user_id": None,
+                "username": None,
+                "hashed_password": None,
+                "salt": None,
+                "registration_date": None
+            })
+        json_data[save_location]["user_id"] = model_class.user_id
+        json_data[save_location]["username"] = model_class.username
+        json_data[save_location]["hashed_password"] = model_class.hashed_password
+        json_data[save_location]["salt"] = model_class.salt
+        json_data[save_location]["registration_date"] = model_class.registration_date.strftime("%Y-%m-%d %H:%M:%S")
+        utils.save_json(json_path, json_data)
+    elif isinstance(model_class, Portfolio):
+        json_path = params.PORTFOLIOS_PATH
+        json_data = utils.load_json(json_path)
+        save_location = -1
+        for i in range(len(json_data)):
+            if json_data[i]["user_id"] == model_class.user_id:
+                save_location = i
+                break
+        if save_location < 0:
+            json_data.append({
+                "user_id": None,
+                "wallets": {}
+            })
+        json_data[save_location]["user_id"] = model_class.user_id
+        wallets_dictionary = {}
+        for key in model_class.wallets.keys():
+            wallets_dictionary[key] = {
+                "currency_code": model_class.wallets[key].currency_code,
+                "balance": model_class.wallets[key].balance
+                }
+        json_data[save_location]["wallets"] = wallets_dictionary
+        utils.save_json(json_path, json_data)
+    else:
+        raise TypeError("Неподдерживаемый класс для сохранения в json.")

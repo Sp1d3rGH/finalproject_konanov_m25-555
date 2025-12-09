@@ -6,6 +6,7 @@ class DatabaseManager:
             print("Создание нового экземпляра DatabaseManager")
             cls.__instance = super().__new__(cls)
         else:
+            pass
             print("Возврат существующего экземпляра DatabaseManager")
         return cls.__instance
     

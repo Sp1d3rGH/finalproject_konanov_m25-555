@@ -12,15 +12,15 @@ class BaseApiClient:
         return None
 
 class CoinGeckoClient(BaseApiClient):
+    '''
+    Обращается к CoinGecko API, чтобы получить
+    курсы валют, указанных в файлах конфигурации,
+    и переводит эти данные к словарному виду.
+    '''
     def fetch_rates(self):
         '''
-        Парсит данные: {
-            "bitcoin":  { "usd": 59337.21 },
-            "ethereum": { "usd": 3720.00 },
-            "solana":   { "usd": 145.12 }
-        }
         Вывод: {
-            "BTC_USD: { "rate": 59337.21, "updated_at": "2025-10-10T12:00:00Z", "source": "CoinGecko" },
+            "BTC_USD: { "rate": <float>, "updated_at": <datetime>, "source": "CoinGecko" },
             ...
         }
         '''
@@ -29,65 +29,80 @@ class CoinGeckoClient(BaseApiClient):
             currency_id = self.cfg.CRYPTO_ID_MAP[currency]
             line_ids += currency_id + ','
         line_ids = line_ids[:-1]
-        # https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum,solana&vs_currencies=usd
-        url = self.cfg.COINGECKO_URL + "?ids=" + line_ids + "&vs_currencies=" + self.cfg.BASE_CURRENCY.lower()
+        fiat_ids = ""
+        for currency in self.cfg.FIAT_CURRENCIES:
+            currency_id = currency.lower()
+            fiat_ids += currency_id + ','
+        fiat_ids = fiat_ids[:-1]
+        url = self.cfg.COINGECKO_URL + "?ids=" + line_ids + "&vs_currencies=" + self.cfg.BASE_CURRENCY.lower() + "," + fiat_ids
         try:
             crypto_info = requests.get(url).json()
             update_time = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             result = {}
             for key in crypto_info.keys():
-                for cur, val in self.cfg.CRYPTO_ID_MAP:
+                for cur, val in self.cfg.CRYPTO_ID_MAP.items():
                     if str(key) == val:
                         parsed_cur = cur
                         break
                 result[parsed_cur + "_" + self.cfg.BASE_CURRENCY] = {
-                    "rate": crypto_info[key][self.cfg.BASE_CURRENCY.lower()],
+                    "rate": str(crypto_info[key][self.cfg.BASE_CURRENCY.lower()]),
                     "updated_at": update_time,
                     "source": "CoinGecko"
                 }
+                result[self.cfg.BASE_CURRENCY + "_" + parsed_cur] = {
+                    "rate": str(1 / float(crypto_info[key][self.cfg.BASE_CURRENCY.lower()])),
+                    "updated_at": update_time,
+                    "source": "CoinGecko"
+                }
+                for fiat_cur in self.cfg.FIAT_CURRENCIES:
+                    result[parsed_cur + "_" + fiat_cur] = {
+                        "rate": str(crypto_info[key][fiat_cur.lower()]),
+                        "updated_at": update_time,
+                        "source": "CoinGecko"
+                    }
+                    result[fiat_cur+ "_" + parsed_cur] = {
+                        "rate": str(1 / float(crypto_info[key][fiat_cur.lower()])),
+                        "updated_at": update_time,
+                        "source": "CoinGecko"
+                    }
             return result
         except requests.RequestException:
-            raise exceptions.ApiRequestError("Ошибка обращения к 'api.coingeckoo.com'.")
+            raise exceptions.ApiRequestError("Ошибка обращения к 'api.coingecko.com'.")
 
 class ExchangeRateApiClient(BaseApiClient):
+    '''
+    Обращается к ExchangeRate API, чтобы получить
+    курсы валют, указанных в файлах конфигурации,
+    и переводит эти данные к словарному виду.
+    '''
     def fetch_rates(self):
         '''
-        Парсит данные: {
-            "result":"success",
-            "documentation":"https://www.exchangerate-api.com/docs",
-            "terms_of_use":"https://www.exchangerate-api.com/terms",
-            "time_last_update_unix":1765065601,
-            "time_last_update_utc":"Sun, 07 Dec 2025 00:00:01 +0000",
-            "time_next_update_unix":1765152001,
-            "time_next_update_utc":"Mon, 08 Dec 2025 00:00:01 +0000",
-            "base_code":"USD",
-            "conversion_rates":{
-                "USD":1,
-                "AED":3.6725,
-                "AFN":66.2641,
-                "ALL":82.8927,
-                ...
-            }
-        }
         Вывод: {
-            "EUR_USD: { "rate": 59337.21, "updated_at": "2025-10-10T12:00:00Z", "source": "ExchangeRate-API" },
+            "EUR_USD: { "rate": <float>, "updated_at": <datetime>, "source": "ExchangeRate-API" },
             ...
         }
         '''
-        # https://v6.exchangerate-api.com/v6/1e0758931d900d0ccdbe6ed2/latest/USD
-        url = self.cfg.EXCHANGERATE_API_URL + "/" + self.cfg.EXCHANGERATE_API_KEY + "/latest/" + self.cfg.BASE_CURRENCY
+        check_currencies = [self.cfg.BASE_CURRENCY] + list(self.cfg.FIAT_CURRENCIES)
+        base_url = self.cfg.EXCHANGERATE_API_URL + "/" + self.cfg.EXCHANGERATE_API_KEY + "/latest/"
         try:
-            fiat_info = requests.get(url).json()
-            if fiat_info["result"] != "success":
-                raise exceptions.ApiRequestError("Ошибка обращения к 'v6.exchangerate-api.com'.")
-            update_time = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            result = {}
-            for currency in self.cfg.FIAT_CURRENCIES:
-                result[currency + "_" + self.cfg.BASE_CURRENCY] = {
-                    "rate": fiat_info["conversion_rates"][currency],
-                    "updated_at": update_time,
-                    "source": "ExchangeRate-API"
-                }
+            for base_currency in check_currencies:
+                url = base_url + base_currency
+                fiat_info = requests.get(url).json()
+                if fiat_info["result"] != "success":
+                    raise exceptions.ApiRequestError(f"Ошибка обращения к 'v6.exchangerate-api.com': {fiat_info["result"]}")
+                update_time = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                result = {}
+                for currency in check_currencies:
+                    result[currency + "_" + base_currency] = {
+                        "rate": str(1 / float(fiat_info["conversion_rates"][currency])),
+                        "updated_at": update_time,
+                        "source": "ExchangeRate-API"
+                    }
+                    result[base_currency + "_" + currency] = {
+                        "rate": str(fiat_info["conversion_rates"][currency]),
+                        "updated_at": update_time,
+                        "source": "ExchangeRate-API"
+                    }
             return result
         except requests.RequestException:
             raise exceptions.ApiRequestError("Ошибка обращения к 'v6.exchangerate-api.com'.")

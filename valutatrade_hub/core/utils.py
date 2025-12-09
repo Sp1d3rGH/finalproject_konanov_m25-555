@@ -4,25 +4,27 @@ import json
 def load_json(filepath):
     with open(filepath) as f:
         data = json.load(f)
-        if "rates.json" not in filepath:
+        if ("users.json" in filepath or "portfolios.json" in filepath):
             if not isinstance(data, list):
                 raise TypeError(f"Некорректный формат файла {filepath}.")
         else:
             if not isinstance(data, dict):
                 raise TypeError(f"Некорректный формат файла {filepath}.")
-        print(f"Успешное чтение из файла {filepath}.")
+        # print(f"Успешное чтение из файла {filepath}.")
         return data
 
 def save_json(filepath, data):
     with open(filepath, 'w') as f:
-        if "rates.json" not in filepath:
+        if ("users.json" in filepath or "portfolios.json" in filepath):
             if not isinstance(data, list):
                 raise TypeError(f"Некорректный формат для записи в файл: {type(data)}.")
+            json.dump(data, f)
+            # print(f"Успешная запись в файл {filepath}.")
         else:
             if not isinstance(data, dict):
                 raise TypeError(f"Некорректный формат для записи в файл: {type(data)}.")
-        json.dump(data, f)
-        print(f"Успешная запись в файл {filepath}.")
+            json.dump(data, f)
+            # print(f"Успешная запись в файл {filepath}.")
 
 def parse_values(values, pref_types):
     '''

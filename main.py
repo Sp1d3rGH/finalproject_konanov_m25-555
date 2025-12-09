@@ -9,25 +9,29 @@ import valutatrade_hub.logging_config as logging_config
 
 
 def ensure_files_exist():
+    '''
+    Создает директорию data/ и необходимые файлы в ней,
+    если они еще не были созданы.
+    '''
     cfg = config.ParserConfig()
     params = settings.SettingsLoader()
     log_cfg = logging_config.LoggingConfig()
+    datapath = params.DATAPATH
     paths = [cfg.RATES_FILE_PATH,
              cfg.HISTORY_FILE_PATH,
              params.USERS_PATH,
-             params.PORTFOLIOS_PATH,
-             log_cfg.LOGS_PATH]
+             params.PORTFOLIOS_PATH]
+    if not os.path.exists(datapath):
+        print(f"Не найдена директория с данными. Создание пустой директории {datapath}.")
+        os.makedirs(datapath, exist_ok=True)
     for filepath in paths:
         if not os.path.exists(filepath):
             print(f"Не найден файл с данными. Создание пустого файла {filepath}.")
-            os.makedirs(filepath, exist_ok=True)
             with open(filepath, "w") as file:
-                if "rates.json" in filepath:
-                    file.write(str(dict()))
-                elif "rates.json" not in filepath:
+                if filepath == params.USERS_PATH or filepath == params.PORTFOLIOS_PATH:
                     file.write(str(list()))
-                elif ".log" in filepath:
-                    file.write('')
+                else:
+                    file.write(str(dict()))
 
 def main():
     ensure_files_exist()
