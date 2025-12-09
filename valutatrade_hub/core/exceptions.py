@@ -6,7 +6,7 @@ class InsufficientFundsError(Exception):
         self.required = required
 
     def __str__(self):
-        return f"Недостаточно средств: доступно {self.available} {self.code}, требуется {self.required} {self.code}"
+        return f"Доступно {self.available} {self.code}, требуется {self.required} {self.code}"
 
 class CurrencyNotFoundError(Exception):
     def __init__(self, code, message=None):
