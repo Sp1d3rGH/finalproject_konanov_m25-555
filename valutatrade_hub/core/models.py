@@ -8,6 +8,15 @@ import valutatrade_hub.parser_service.config as config
 
 
 class User:
+    '''
+    Класс зарегистрированных пользователей.
+    Отвечает за хранение следующих данных:
+    - user_id <int> - уникальный идентификатор пользователя.
+    - username <str> - уникальное имя пользователя.
+    - hashed_password <str> - захэшированный пароль по 'SHA-256'.
+    - salt <str> - соль для кэширования.
+    - registration_date <datetime> - дата регистрации.
+    '''
     def __init__(self, user_id=None, username=None,
                  hashed_password=None, salt=None, registration_date=None):
         if (isinstance(user_id, int) and
@@ -101,6 +110,12 @@ class User:
         return sha256_string
 
 class Wallet:
+    '''
+    Класс кошелька определенной валюты.
+    Поля:
+    - currency_code <str> - код валюты ("USD", ...).
+    - balance <float> - кол-во единиц данной валюты.
+    '''
     def __init__(self, currency_code=None, balance=None):
         if (isinstance(currency_code, str) and
             isinstance(balance, float)):
@@ -153,6 +168,13 @@ class Wallet:
         print("Доступные средства:", self.balance, self.currency_code)
 
 class Portfolio:
+    '''
+    Класс портфеля валют.
+    Соответствует одному пользователю по уникальному общему ID.
+    Данные:
+    - user_id <int> - уникальный идентификатор пользователя.
+    - wallets <dict<Wallet>> - словарь из кошельков.
+    '''
     def __init__(self, user_id=None, wallets=None):
         if (isinstance(user_id, int) and
             isinstance(wallets, dict)):
@@ -226,6 +248,11 @@ class Portfolio:
         return amount * multiplier
 
 def save_into_json(model_class):
+    '''
+    На вход поступает экземпляр класса User или Portfolio.
+    Функция добавляет информацию класса в файл
+    "users.json" или "portfolios.json".
+    '''
     params = settings.SettingsLoader()
     if isinstance(model_class, User):
         json_path = params.USERS_PATH

@@ -3,6 +3,11 @@ import valutatrade_hub.parser_service.config as config
 
 
 class Currency:
+    '''
+    Базовый класс валют.
+    - code <str> - код валюты (USD, ...)
+    - name <str> - имя валюты (bitcoin, ...)
+    '''
     def __init__(self, code=None, name=None):
         if (isinstance(name, str) and
             isinstance(code, str)):
@@ -43,6 +48,12 @@ class Currency:
         print(f"{self.code} — {self.name}")
 
 class FiatCurrency(Currency):
+    '''
+    Отвечает за хранение фиатных валют (USD, RUB, ...).
+    Предок - Currency.
+    Добавленные поля:
+    - issuing_country <str> - выпускающая страна.
+    '''
     def __init__(self, code=None, name=None, issuing_country=None):
         super().__init__(code, name)
         self._issuing_country = issuing_country
@@ -63,6 +74,13 @@ class FiatCurrency(Currency):
         print(f"[FIAT] {self.code} — {self.name} (Issuing: {self.issuing_country})")
 
 class CryptoCurrency(Currency):
+    '''
+    Отвечает за хранение криптовалют (BTC, SOL, ...).
+    Предок - Currency.
+    Добавленные поля:
+    - algorithm <str> - название алгоритма.
+    - market_cap <str> - капитализация.
+    '''
     def __init__(self, code=None, name=None, algorithm=None, market_cap=None):
         super().__init__(code, name)
         self._algorithm = algorithm
@@ -97,6 +115,11 @@ class CryptoCurrency(Currency):
               f"(Algo: {self.algorithm}, MCAP: {self.market_cap})")
 
 def get_currency(code):
+    '''
+    Валидирует по code принадлежность валюты
+    к одному из классов. Если валюта
+    не поддерживается, бросает исключение.
+    '''
     cfg = config.ParserConfig()
     if not isinstance(code, str):
         raise TypeError("Код валюты не задан.")
