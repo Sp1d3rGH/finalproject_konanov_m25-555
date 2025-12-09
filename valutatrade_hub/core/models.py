@@ -1,13 +1,15 @@
-import hashlib
 import datetime
-import valutatrade_hub.core.utils as utils
+import hashlib
+
 import valutatrade_hub.core.exceptions as exceptions
+import valutatrade_hub.core.utils as utils
 import valutatrade_hub.infra.settings as settings
 import valutatrade_hub.parser_service.config as config
 
 
 class User:
-    def __init__(self, user_id=None, username=None, hashed_password=None, salt=None, registration_date=None):
+    def __init__(self, user_id=None, username=None,
+                 hashed_password=None, salt=None, registration_date=None):
         if (isinstance(user_id, int) and
             isinstance(username, str) and
             isinstance(hashed_password, str) and
@@ -25,7 +27,7 @@ class User:
     @property
     def user_id(self):
         return self._user_id
-    
+
     @user_id.setter
     def user_id(self, value):
         if not isinstance(value, str):
@@ -35,7 +37,7 @@ class User:
     @property
     def username(self):
         return self._username
-    
+
     @username.setter
     def username(self, value):
         if not isinstance(value, str):
@@ -47,7 +49,7 @@ class User:
     @property
     def hashed_password(self):
         return self._hashed_password
-    
+
     @hashed_password.setter
     def hashed_password(self, value):
         if not isinstance(value, str):
@@ -59,7 +61,7 @@ class User:
     @property
     def salt(self):
         return self._salt
-    
+
     @salt.setter
     def salt(self, value):
         if not isinstance(value, str):
@@ -69,7 +71,7 @@ class User:
     @property
     def registration_date(self):
         return self._registration_date
-    
+
     @registration_date.setter
     def registration_date(self, value):
         if not isinstance(value, datetime.datetime):
@@ -111,17 +113,17 @@ class Wallet:
     @property
     def currency_code(self):
         return self._currency_code
-    
+
     @currency_code.setter
     def currency_node(self, value):
         if not isinstance(value, str):
             raise TypeError(type(value))
         self._currency_code = value
-    
+
     @property
     def balance(self):
         return self._balance
-    
+
     @balance.setter
     def balance(self, value):
         if not isinstance(value, float):
@@ -129,7 +131,7 @@ class Wallet:
         if value < 0:
             raise ValueError("Отрицательное значение.")
         self._balance = value
-    
+
     def deposit(self, amount):
         if not isinstance(amount, float):
             raise TypeError(type(amount))
@@ -141,11 +143,12 @@ class Wallet:
         if not isinstance(amount, float):
             raise TypeError(type(amount))
         if self.balance < amount:
-            raise exceptions.InsufficientFundsError(self.currency_code, self.balance, amount)
+            raise exceptions.InsufficientFundsError(
+                self.currency_code, self.balance, amount)
         if amount < 0:
             raise ValueError("Отрицательное значение.")
         self.balance -= amount
-    
+
     def get_balance_info(self):
         print("Доступные средства:", self.balance, self.currency_code)
 
@@ -162,11 +165,11 @@ class Portfolio:
     @property
     def user_id(self):
         return self._user_id
-    
+
     @property
     def wallets(self):
         return self._wallets
-    
+
     @wallets.setter
     def wallets(self, dictionary):
         if not isinstance(dictionary, dict):
@@ -195,13 +198,14 @@ class Portfolio:
         total_value = 0.0
         for currency in self.wallets.keys():
             currency_balance = self.wallets[currency].balance
-            result = self.converse_to_base(str(currency), base_currency, currency_balance)
+            result = self.converse_to_base(
+                str(currency), base_currency, currency_balance)
             total_value += result
             print(f"- {str(currency)}: {currency_balance}  → {result} {base_currency}")
         print(f"---------------------------------\n"
               f"ИТОГО: {total_value} {base_currency}")
         return total_value
-    
+
     def get_wallet(self, currency_code):
         if not isinstance(currency_code, str):
             raise TypeError(type(currency_code))
@@ -243,7 +247,8 @@ def save_into_json(model_class):
         json_data[save_location]["username"] = model_class.username
         json_data[save_location]["hashed_password"] = model_class.hashed_password
         json_data[save_location]["salt"] = model_class.salt
-        json_data[save_location]["registration_date"] = model_class.registration_date.strftime("%Y-%m-%d %H:%M:%S")
+        json_data[save_location]["registration_date"] = (
+            model_class.registration_date.strftime("%Y-%m-%d %H:%M:%S"))
         utils.save_json(json_path, json_data)
     elif isinstance(model_class, Portfolio):
         json_path = params.PORTFOLIOS_PATH

@@ -2,10 +2,10 @@
 
 
 import os
+
 import valutatrade_hub.cli.interface as interface
-import valutatrade_hub.parser_service.config as config
 import valutatrade_hub.infra.settings as settings
-import valutatrade_hub.logging_config as logging_config
+import valutatrade_hub.parser_service.config as config
 
 
 def ensure_files_exist():
@@ -15,14 +15,14 @@ def ensure_files_exist():
     '''
     cfg = config.ParserConfig()
     params = settings.SettingsLoader()
-    log_cfg = logging_config.LoggingConfig()
     datapath = params.DATAPATH
     paths = [cfg.RATES_FILE_PATH,
              cfg.HISTORY_FILE_PATH,
              params.USERS_PATH,
              params.PORTFOLIOS_PATH]
     if not os.path.exists(datapath):
-        print(f"Не найдена директория с данными. Создание пустой директории {datapath}.")
+        print(f"Не найдена директория с данными. "
+              f"Создание пустой директории {datapath}.")
         os.makedirs(datapath, exist_ok=True)
     for filepath in paths:
         if not os.path.exists(filepath):

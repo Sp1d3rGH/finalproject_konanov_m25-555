@@ -1,16 +1,16 @@
-import valutatrade_hub.core.utils as utils
-import valutatrade_hub.core.models as models
-import valutatrade_hub.decorators as decorators
-import valutatrade_hub.core.currencies as currencies
-import valutatrade_hub.core.exceptions as exceptions
-import valutatrade_hub.infra.settings as settings
-import valutatrade_hub.parser_service.config as config
-import valutatrade_hub.parser_service.updater as updater
-import valutatrade_hub.parser_service.api_clients as api_clients
-import valutatrade_hub.parser_service.storage as storage
+import datetime
 import random
 import string
-import datetime
+
+import valutatrade_hub.core.currencies as currencies
+import valutatrade_hub.core.models as models
+import valutatrade_hub.core.utils as utils
+import valutatrade_hub.decorators as decorators
+import valutatrade_hub.infra.settings as settings
+import valutatrade_hub.parser_service.api_clients as api_clients
+import valutatrade_hub.parser_service.config as config
+import valutatrade_hub.parser_service.storage as storage
+import valutatrade_hub.parser_service.updater as updater
 
 
 def show_help():
@@ -32,19 +32,23 @@ def show_help():
         "--username <name> - имя пользователя.\n"
         "--password <pass> - пароль.\n"
         "\n"
-        "- show-portfolio <--argument> <input> - информация о ваших кошельках. Требует авторизации.\n"
+        "- show-portfolio <--argument> <input> - информация о ваших кошельках. "
+        "Требует авторизации.\n"
         "Необязательные аргументы:\n"
-        "--base <currency> - код валюты (например: USD), по которой учитывать общий баланс кошельков.\n"
+        "--base <currency> - код валюты (например: USD), по которой учитывать "
+        "общий баланс кошельков.\n"
         "\n"
         "- buy <--argument> <input> - купить валюту. Требует авторизации.\n"
         "Обязательные аргументы:\n"
         "--currency <currency> - код валюты (например: USD), которую хотите купить.\n"
-        "--amount <currency> - объем покупки в штуках (например: 123.45). Неотрицательное число.\n"
+        "--amount <currency> - объем покупки в штуках (например: 123.45). "
+        "Неотрицательное число.\n"
         "\n"
         "- sell <--argument> <input> - продать валюту. Требует авторизации.\n"
         "Обязательные аргументы:\n"
         "--currency <currency> - код валюты (например: USD), которую хотите продать.\n"
-        "--amount <currency> - объем продажи в штуках (например: 123.45). Неотрицательное число, нужно иметь необходимые средства в кошельке.\n"
+        "--amount <currency> - объем продажи в штуках (например: 123.45). "
+        "Неотрицательное число, нужно иметь необходимые средства в кошельке.\n"
         "\n"
         "- get-rate <--argument> <input> - получить курс одной валюты к другой.\n"
         "Обязательные аргументы:\n"
@@ -55,11 +59,13 @@ def show_help():
         "Необязательные аргументы:\n"
         "--currency <currency> - код исходной валюты (например: EUR).\n"
         "--base <currency> - код базовой валюты (например: USD).\n"
-        "--top <value> - число (например: 5) верхних строк, которые хотите вывести на экран.\n"
+        "--top <value> - число (например: 5) верхних строк, которые хотите "
+        "вывести на экран.\n"
         "\n"
         "- update-rates <--argument> <input> - обновить обменные курсы валют.\n"
         "Необязательные аргументы:\n"
-        "--source <api> - один из сервисов API (coingecko или exchangerate). Если не указывать, будут задействованы оба сервиса.\n"
+        "--source <api> - один из сервисов API (coingecko или exchangerate). "
+        "Если не указывать, будут задействованы оба сервиса.\n"
         "\n"
         "- exit - выход."
     )
@@ -121,7 +127,8 @@ def login_user(name=None, password=None):
                 username = users_data[i]["username"],
                 hashed_password = users_data[i]["hashed_password"],
                 salt = users_data[i]["salt"],
-                registration_date = datetime.datetime.strptime(users_data[i]["registration_date"], "%Y-%m-%d %H:%M:%S")
+                registration_date = datetime.datetime.strptime(
+                    users_data[i]["registration_date"], "%Y-%m-%d %H:%M:%S")
             )
             existing_user.hashed_password = users_data[i]["hashed_password"]
             if not existing_user.verify_password(password):
@@ -166,7 +173,8 @@ def show_portfolio(base_currency, existing_user):
     crypto_service = api_clients.CoinGeckoClient()
     fiat_service = api_clients.ExchangeRateApiClient()
     storage_service = storage.StorageUpdater()
-    updater_service = updater.RatesUpdater(crypto_service, fiat_service, storage_service)
+    updater_service = updater.RatesUpdater(
+        crypto_service, fiat_service, storage_service)
     updater_service.run_update()
     existing_portfolio.get_total_value(base_currency)
 
@@ -204,7 +212,8 @@ def buy_by_user(currency, amount, existing_user):
     crypto_service = api_clients.CoinGeckoClient()
     fiat_service = api_clients.ExchangeRateApiClient()
     storage_service = storage.StorageUpdater()
-    updater_service = updater.RatesUpdater(crypto_service, fiat_service, storage_service)
+    updater_service = updater.RatesUpdater(
+        crypto_service, fiat_service, storage_service)
     updater_service.run_update()
     rates_json = utils.load_json(cfg.RATES_FILE_PATH)
     if not rates_json:
@@ -212,9 +221,11 @@ def buy_by_user(currency, amount, existing_user):
     if converse_way not in rates_json["pairs"].keys():
         raise ValueError(f"Курс {converse_way} не найден.")
     multiplier = float(rates_json["pairs"][converse_way]["rate"])
-    print(f"Покупка выполнена: {amount} {currency.code} по курсу {multiplier} {converse_way}\n"
+    print(f"Покупка выполнена: {amount} {currency.code} "
+          f"по курсу {multiplier} {converse_way}\n"
           f"Изменения в портфеле:\n"
-          f"- {currency.code}: было {balance_before} → стало {balance_before + amount}\n"
+          f"- {currency.code}: было {balance_before} → "
+          f"стало {balance_before + amount}\n"
           f"Оценочная стоимость покупки: {amount * multiplier} {base_currency}")
     models.save_into_json(existing_portfolio)
     logging_data = {
@@ -262,7 +273,8 @@ def sell_by_user(currency, amount, existing_user):
     crypto_service = api_clients.CoinGeckoClient()
     fiat_service = api_clients.ExchangeRateApiClient()
     storage_service = storage.StorageUpdater()
-    updater_service = updater.RatesUpdater(crypto_service, fiat_service, storage_service)
+    updater_service = updater.RatesUpdater(
+        crypto_service, fiat_service, storage_service)
     updater_service.run_update()
     rates_json = utils.load_json(cfg.RATES_FILE_PATH)
     if not rates_json:
@@ -270,9 +282,11 @@ def sell_by_user(currency, amount, existing_user):
     if converse_way not in rates_json["pairs"].keys():
         raise ValueError(f"Курс {converse_way} не найден.")
     multiplier = float(rates_json["pairs"][converse_way]["rate"])
-    print(f"Продажа выполнена: {amount} {currency.code} по курсу {multiplier} {converse_way}\n"
+    print(f"Продажа выполнена: {amount} {currency.code} "
+          f"по курсу {multiplier} {converse_way}\n"
           f"Изменения в портфеле:\n"
-          f"- {currency.code}: было {balance_before} → стало {balance_before - amount}\n"
+          f"- {currency.code}: было {balance_before} → "
+          f"стало {balance_before - amount}\n"
           f"Оценочная выручка: {amount * multiplier} {base_currency}")
     models.save_into_json(existing_portfolio)
     logging_data = {
@@ -303,7 +317,8 @@ def get_rate_user(base_currency, pref_currency):
     multiplier_to = float(rates_json["pairs"][converse_way_to]["rate"])
     date_stamp_to = rates_json["pairs"][converse_way_to]["updated_at"]
     multiplier_from = float(rates_json["pairs"][converse_way_from]["rate"])
-    print(f"Курс {base_currency.code}→{pref_currency.code}: {multiplier_to} (обновлено: {date_stamp_to})\n"
+    print(f"Курс {base_currency.code}→{pref_currency.code}: "
+          f"{multiplier_to} (обновлено: {date_stamp_to})\n"
           f"Обратный курс {pref_currency.code}→{base_currency.code}: {multiplier_from}")
     last_update = datetime.datetime.strptime(date_stamp_to, "%Y-%m-%d %H:%M:%S")
     now_time = datetime.datetime.now()
@@ -339,7 +354,13 @@ def show_rates_user(from_currency, top, to_currency):
         print("Не найдено курсов по такому фильтру.")
     else:
         print(f"Курсы валют из кэша (обновлено в {rates_json["last_refresh"]})")
-        sorted_rates = {entry[0]: entry[1] for entry in sorted(requested_rates.items(), key=lambda arr:arr[1], reverse=True)}
+        sorted_rates = {
+            entry[0]: entry[1] for entry in sorted(
+                requested_rates.items(),
+                key=lambda arr:arr[1],
+                reverse=True
+            )
+        }
         if not top:
             for key, value in sorted_rates.items():
                 print(f"- {str(key)}: {value}")
@@ -350,7 +371,8 @@ def show_rates_user(from_currency, top, to_currency):
                     break
                 print(f"- {str(key)}: {value}")
                 top -= 1
-        last_update = datetime.datetime.strptime(rates_json["last_refresh"], "%Y-%m-%d %H:%M:%S")
+        last_update = datetime.datetime.strptime(
+            rates_json["last_refresh"], "%Y-%m-%d %H:%M:%S")
         now_time = datetime.datetime.now()
         time_difference = now_time - last_update
         if time_difference > datetime.timedelta(seconds=int(params.RATES_TTL_SECONDS)):

@@ -1,8 +1,9 @@
 import datetime
-import valutatrade_hub.parser_service.config as config
-import valutatrade_hub.parser_service.api_clients as api_clients
-import valutatrade_hub.parser_service.storage as storage
+
 import valutatrade_hub.core.exceptions as exceptions
+import valutatrade_hub.parser_service.api_clients as api_clients
+import valutatrade_hub.parser_service.config as config
+import valutatrade_hub.parser_service.storage as storage
 
 
 class RatesUpdater:
@@ -36,9 +37,10 @@ class RatesUpdater:
             case '':
                 pass
             case _:
-                raise exceptions.ApiRequestError(f"Неизвестное API '{self.input_source}'.")
+                raise exceptions.ApiRequestError(
+                    f"Неизвестное API '{self.input_source}'.")
         print("INFO: Обновление курсов валют...")
-        if update_crypto == True:
+        if update_crypto:
             try:
                 print("INFO: Запрос с CoinGecko...", end='')
                 crypto_output = {}
@@ -49,7 +51,7 @@ class RatesUpdater:
             except exceptions.ApiRequestError as e:
                 errors = True
                 print(f"ERROR ({e})")
-        if update_fiat == True:
+        if update_fiat:
             try:
                 print("INFO: Запрос с ExchangeRate-API...", end='')
                 fiat_output = {}

@@ -1,5 +1,6 @@
 import valutatrade_hub.core.utils as utils
 
+
 class SettingsLoader:
     '''
     - CONFIGPATH - путь до файла с настройками.
@@ -22,7 +23,7 @@ class SettingsLoader:
             pass
             # print("Возврат существующего экземпляра SettingsLoader")
         return cls.__instance
-    
+
     def __init__(self):
         self.CONFIGPATH = "valutatrade_hub/infra/config.json"
         config_data = utils.load_json(self.CONFIGPATH)
@@ -33,7 +34,7 @@ class SettingsLoader:
         self.USERS_PATH = config_data["USERS_PATH"]
         self.PORTFOLIOS_PATH = config_data["PORTFOLIOS_PATH"]
         self.SALT_LENGTH = int(config_data["SALT_LENGTH"])
-    
+
     def reload(self):
         config_data = utils.load_json(self.CONFIGPATH)
         self.DATAPATH = config_data["DATAPATH"]

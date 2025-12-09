@@ -9,6 +9,6 @@ class DatabaseManager:
             pass
             print("Возврат существующего экземпляра DatabaseManager")
         return cls.__instance
-    
+
     def __init__(self):
-        print(f"Инициализация DatabaseManager")
+        print("Инициализация DatabaseManager")

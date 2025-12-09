@@ -1,5 +1,6 @@
 import datetime
 
+
 class LoggingConfig:
     '''
     - LOGS_DIR - директория с логами.
@@ -21,7 +22,7 @@ class LoggingConfig:
             pass
             # print("Возврат существующего экземпляра LoggingConfig")
         return cls.__instance
-    
+
     def __init__(self,
                  LOGS_DIR = "logs",
                  LOGS_NAME = "actions",

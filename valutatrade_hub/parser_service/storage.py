@@ -1,5 +1,5 @@
-import valutatrade_hub.parser_service.config as config
 import valutatrade_hub.core.utils as utils
+import valutatrade_hub.parser_service.config as config
 
 
 class StorageUpdater:
@@ -9,7 +9,7 @@ class StorageUpdater:
     '''
     def __init__(self):
         self.cfg = config.ParserConfig()
-    
+
     def save_rates(self, rates: dict):
         json_data = utils.load_json(self.cfg.RATES_FILE_PATH)
         if not rates:

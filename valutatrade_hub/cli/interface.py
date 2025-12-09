@@ -1,11 +1,12 @@
 import shlex
+
 import valutatrade_hub.core.usecases as usecases
 import valutatrade_hub.decorators as decorators
 import valutatrade_hub.infra.settings as settings
-import valutatrade_hub.parser_service.config as config
-import valutatrade_hub.parser_service.updater as updater
 import valutatrade_hub.parser_service.api_clients as api_clients
+import valutatrade_hub.parser_service.config as config
 import valutatrade_hub.parser_service.storage as storage
+import valutatrade_hub.parser_service.updater as updater
 
 
 def run():
@@ -39,7 +40,8 @@ def run_loop(current_user, user_args, params, cfg):
                 if i % 2 == 0 and user_args[i-1] not in special_args:
                     raise IOError(user_args[i-1] + ' ' + user_args[i] + ". "
                                   "Чтобы получить справку, вызовите 'help'.")
-                elif user_args[i-1] in special_args and user_args[i] not in special_args:
+                elif (user_args[i-1] in special_args and
+                      user_args[i] not in special_args):
                     match user_args[i-1]:
                         case "--username":
                             input_name = user_args[i]
@@ -63,7 +65,8 @@ def run_loop(current_user, user_args, params, cfg):
                 if i % 2 == 0 and user_args[i-1] not in special_args:
                     raise IOError(user_args[i-1] + ' ' + user_args[i] + ". "
                                   "Чтобы получить справку, вызовите 'help'.")
-                elif user_args[i-1] in special_args and user_args[i] not in special_args:
+                elif (user_args[i-1] in special_args and
+                      user_args[i] not in special_args):
                     match user_args[i-1]:
                         case "--username":
                             input_name = user_args[i]
@@ -78,14 +81,16 @@ def run_loop(current_user, user_args, params, cfg):
             return current_user, None
         case "show-portfolio":
             if not current_user:
-                raise ValueError("Для выполнения этой команды необходимо войти в аккаунт.")
+                raise ValueError("Для выполнения этой команды "
+                                 "необходимо войти в аккаунт.")
             input_currency = cfg.BASE_CURRENCY
             special_args = ["--base"]
             for i in range(1, len(user_args)):
                 if i % 2 == 0 and user_args[i-1] not in special_args:
                     raise IOError(user_args[i-1] + ' ' + user_args[i] + ". "
                                   "Чтобы получить справку, вызовите 'help'.")
-                elif user_args[i-1] in special_args and user_args[i] not in special_args:
+                elif (user_args[i-1] in special_args and
+                      user_args[i] not in special_args):
                     match user_args[i-1]:
                         case "--base":
                             input_currency = user_args[i]
@@ -97,7 +102,8 @@ def run_loop(current_user, user_args, params, cfg):
             return None, None
         case "buy":
             if not current_user:
-                raise ValueError("Для выполнения этой команды необходимо войти в аккаунт.")
+                raise ValueError("Для выполнения этой команды "
+                                 "необходимо войти в аккаунт.")
             input_currency = None
             input_amount = None
             special_args = ["--currency", "--amount"]
@@ -105,7 +111,8 @@ def run_loop(current_user, user_args, params, cfg):
                 if i % 2 == 0 and user_args[i-1] not in special_args:
                     raise IOError(user_args[i-1] + ' ' + user_args[i] + ". "
                                   "Чтобы получить справку, вызовите 'help'.")
-                elif user_args[i-1] in special_args and user_args[i] not in special_args:
+                elif (user_args[i-1] in special_args and
+                      user_args[i] not in special_args):
                     match user_args[i-1]:
                         case "--currency":
                             input_currency = user_args[i]
@@ -120,7 +127,8 @@ def run_loop(current_user, user_args, params, cfg):
             return None, None
         case "sell":
             if not current_user:
-                raise ValueError("Для выполнения этой команды необходимо войти в аккаунт.")
+                raise ValueError("Для выполнения этой команды "
+                                 "необходимо войти в аккаунт.")
             input_currency = None
             input_amount = None
             special_args = ["--currency", "--amount"]
@@ -128,7 +136,8 @@ def run_loop(current_user, user_args, params, cfg):
                 if i % 2 == 0 and user_args[i-1] not in special_args:
                     raise IOError(user_args[i-1] + ' ' + user_args[i] + ". "
                                   "Чтобы получить справку, вызовите 'help'.")
-                elif user_args[i-1] in special_args and user_args[i] not in special_args:
+                elif (user_args[i-1] in special_args and
+                      user_args[i] not in special_args):
                     match user_args[i-1]:
                         case "--currency":
                             input_currency = user_args[i]
@@ -149,7 +158,8 @@ def run_loop(current_user, user_args, params, cfg):
                 if i % 2 == 0 and user_args[i-1] not in special_args:
                     raise IOError(user_args[i-1] + ' ' + user_args[i] + ". "
                                   "Чтобы получить справку, вызовите 'help'.")
-                elif user_args[i-1] in special_args and user_args[i] not in special_args:
+                elif (user_args[i-1] in special_args and
+                      user_args[i] not in special_args):
                     match user_args[i-1]:
                         case "--from":
                             input_base = user_args[i]
@@ -169,7 +179,8 @@ def run_loop(current_user, user_args, params, cfg):
                 if i % 2 == 0 and user_args[i-1] not in special_args:
                     raise IOError(user_args[i-1] + ' ' + user_args[i] + ". "
                                   "Чтобы получить справку, вызовите 'help'.")
-                elif user_args[i-1] in special_args and user_args[i] not in special_args:
+                elif (user_args[i-1] in special_args and
+                      user_args[i] not in special_args):
                     match user_args[i-1]:
                         case "--source":
                             input_source = user_args[i]
@@ -180,7 +191,8 @@ def run_loop(current_user, user_args, params, cfg):
             crypto_service = api_clients.CoinGeckoClient()
             fiat_service = api_clients.ExchangeRateApiClient()
             storage_service = storage.StorageUpdater()
-            updater_service = updater.RatesUpdater(crypto_service, fiat_service, storage_service, input_source)
+            updater_service = updater.RatesUpdater(
+                crypto_service, fiat_service, storage_service, input_source)
             updater_service.run_update()
             return None, None
         case "show-rates":
@@ -192,7 +204,8 @@ def run_loop(current_user, user_args, params, cfg):
                 if i % 2 == 0 and user_args[i-1] not in special_args:
                     raise IOError(user_args[i-1] + ' ' + user_args[i] + ". "
                                   "Чтобы получить справку, вызовите 'help'.")
-                elif user_args[i-1] in special_args and user_args[i] not in special_args:
+                elif (user_args[i-1] in special_args and
+                      user_args[i] not in special_args):
                     match user_args[i-1]:
                         case "--currency":
                             input_currency = user_args[i]
@@ -203,7 +216,8 @@ def run_loop(current_user, user_args, params, cfg):
                         case "--base":
                             input_base = user_args[i]
                             special_args.remove("--base")
-                elif user_args[i-1] in special_args and user_args[i] in special_args:
+                elif (user_args[i-1] in special_args and
+                      user_args[i] in special_args):
                     raise IOError(user_args[i-1] + ' ' + user_args[i] + ". "
                                   "Чтобы получить справку, вызовите 'help'.")
             usecases.show_rates_user(input_currency, input_top, input_base)

@@ -1,5 +1,7 @@
-import requests
 import datetime
+
+import requests
+
 import valutatrade_hub.core.exceptions as exceptions
 import valutatrade_hub.parser_service.config as config
 
@@ -20,7 +22,11 @@ class CoinGeckoClient(BaseApiClient):
     def fetch_rates(self):
         '''
         Вывод: {
-            "BTC_USD: { "rate": <float>, "updated_at": <datetime>, "source": "CoinGecko" },
+            "BTC_USD: {
+                "rate": <float>,
+                "updated_at": <datetime>,
+                "source": "CoinGecko"
+            },
             ...
         }
         '''
@@ -34,7 +40,10 @@ class CoinGeckoClient(BaseApiClient):
             currency_id = currency.lower()
             fiat_ids += currency_id + ','
         fiat_ids = fiat_ids[:-1]
-        url = self.cfg.COINGECKO_URL + "?ids=" + line_ids + "&vs_currencies=" + self.cfg.BASE_CURRENCY.lower() + "," + fiat_ids
+        url = (self.cfg.COINGECKO_URL +
+               "?ids=" + line_ids +
+               "&vs_currencies=" + self.cfg.BASE_CURRENCY.lower() +
+               "," + fiat_ids)
         try:
             crypto_info = requests.get(url).json()
             update_time = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -50,7 +59,9 @@ class CoinGeckoClient(BaseApiClient):
                     "source": "CoinGecko"
                 }
                 result[self.cfg.BASE_CURRENCY + "_" + parsed_cur] = {
-                    "rate": str(1 / float(crypto_info[key][self.cfg.BASE_CURRENCY.lower()])),
+                    "rate": str(
+                        1 / float(crypto_info[key][self.cfg.BASE_CURRENCY.lower()])
+                    ),
                     "updated_at": update_time,
                     "source": "CoinGecko"
                 }
@@ -67,7 +78,8 @@ class CoinGeckoClient(BaseApiClient):
                     }
             return result
         except requests.RequestException:
-            raise exceptions.ApiRequestError("Ошибка обращения к 'api.coingecko.com'.")
+            raise exceptions.ApiRequestError(
+                "Ошибка обращения к 'api.coingecko.com'.")
 
 class ExchangeRateApiClient(BaseApiClient):
     '''
@@ -78,18 +90,25 @@ class ExchangeRateApiClient(BaseApiClient):
     def fetch_rates(self):
         '''
         Вывод: {
-            "EUR_USD: { "rate": <float>, "updated_at": <datetime>, "source": "ExchangeRate-API" },
+            "EUR_USD: {
+                "rate": <float>,
+                "updated_at": <datetime>,
+                "source": "ExchangeRate-API"
+                },
             ...
         }
         '''
         check_currencies = [self.cfg.BASE_CURRENCY] + list(self.cfg.FIAT_CURRENCIES)
-        base_url = self.cfg.EXCHANGERATE_API_URL + "/" + self.cfg.EXCHANGERATE_API_KEY + "/latest/"
+        base_url = (self.cfg.EXCHANGERATE_API_URL + "/"
+                    + self.cfg.EXCHANGERATE_API_KEY + "/latest/")
         try:
             for base_currency in check_currencies:
                 url = base_url + base_currency
                 fiat_info = requests.get(url).json()
                 if fiat_info["result"] != "success":
-                    raise exceptions.ApiRequestError(f"Ошибка обращения к 'v6.exchangerate-api.com': {fiat_info["result"]}")
+                    raise exceptions.ApiRequestError(
+                        f"Ошибка обращения к "
+                        f"'v6.exchangerate-api.com': {fiat_info["result"]}")
                 update_time = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                 result = {}
                 for currency in check_currencies:
@@ -105,4 +124,5 @@ class ExchangeRateApiClient(BaseApiClient):
                     }
             return result
         except requests.RequestException:
-            raise exceptions.ApiRequestError("Ошибка обращения к 'v6.exchangerate-api.com'.")
+            raise exceptions.ApiRequestError(
+                "Ошибка обращения к 'v6.exchangerate-api.com'.")
