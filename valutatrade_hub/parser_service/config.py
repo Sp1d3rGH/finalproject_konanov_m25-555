@@ -25,9 +25,9 @@ class ParserConfig:
     BASE_CURRENCY: str = "USD"
     FIAT_CURRENCIES: tuple = ("EUR", "GBP", "RUB")
     FIAT_ID_MAP: dict = field(default_factory=lambda:{
-        "EUR": "Euro",
-        "GBP": "Sterling",
-        "RUB": "Ruble",
+        "EUR": "euro",
+        "GBP": "sterling",
+        "RUB": "ruble",
     })
     CRYPTO_CURRENCIES: tuple = ("BTC", "ETH", "SOL")
     CRYPTO_ID_MAP: dict = field(default_factory=lambda:{

@@ -5,6 +5,9 @@ import valutatrade_hub.core.currencies as currencies
 import valutatrade_hub.core.exceptions as exceptions
 import valutatrade_hub.infra.settings as settings
 import valutatrade_hub.parser_service.config as config
+import valutatrade_hub.parser_service.updater as updater
+import valutatrade_hub.parser_service.api_clients as api_clients
+import valutatrade_hub.parser_service.storage as storage
 import random
 import string
 import datetime
@@ -14,6 +17,8 @@ def show_help():
     print(
         "Вызов команд:\n"
         "<command> <--argument1> <input> <--argument2> <input> ...\n"
+        "\n"
+        "Поддерживаемые коды валют: USD, EUR, GBP, RUB, BTC, ETH, SOL.\n"
         "\n"
         "Список команд:\n"
         "\n"
@@ -51,6 +56,10 @@ def show_help():
         "--currency <currency> - код исходной валюты (например: EUR).\n"
         "--base <currency> - код базовой валюты (например: USD).\n"
         "--top <value> - число (например: 5) верхних строк, которые хотите вывести на экран.\n"
+        "\n"
+        "- update-rates <--argument> <input> - обновить обменные курсы валют.\n"
+        "Необязательные аргументы:\n"
+        "--source <api> - один из сервисов API (coingecko или exchangerate). Если не указывать, будут задействованы оба сервиса.\n"
         "\n"
         "- exit - выход."
     )
@@ -96,7 +105,6 @@ def register_user(name=None, password=None):
         "base": ''
     }
     return new_user, logging_data
-    # return new_user, new_portfolio
 
 @decorators.log_action(verbose=True)
 def login_user(name=None, password=None):
@@ -119,6 +127,7 @@ def login_user(name=None, password=None):
             if not existing_user.verify_password(password):
                 raise ValueError("Пароль неверный.")
             else:
+                print(f"Вход в аккаунт '{name}'.")
                 logging_data = {
                     "operation": "LOGIN",
                     "user": name,
@@ -154,6 +163,11 @@ def show_portfolio(base_currency, existing_user):
                                           wallets=
                                             current_wallets)
     print(f"Портфель пользователя '{existing_user.username}' (база: {base_currency}):")
+    crypto_service = api_clients.CoinGeckoClient()
+    fiat_service = api_clients.ExchangeRateApiClient()
+    storage_service = storage.StorageUpdater()
+    updater_service = updater.RatesUpdater(crypto_service, fiat_service, storage_service)
+    updater_service.run_update()
     existing_portfolio.get_total_value(base_currency)
 
 @decorators.log_action(verbose=True)
@@ -187,6 +201,11 @@ def buy_by_user(currency, amount, existing_user):
     existing_portfolio.get_wallet(currency.code).deposit(amount)
     base_currency = cfg.BASE_CURRENCY
     converse_way = currency.code + '_' + base_currency
+    crypto_service = api_clients.CoinGeckoClient()
+    fiat_service = api_clients.ExchangeRateApiClient()
+    storage_service = storage.StorageUpdater()
+    updater_service = updater.RatesUpdater(crypto_service, fiat_service, storage_service)
+    updater_service.run_update()
     rates_json = utils.load_json(cfg.RATES_FILE_PATH)
     if not rates_json:
         raise ValueError("Кэш валют пуст. Воспользуйтесь командой 'update-rates'.")
@@ -240,6 +259,11 @@ def sell_by_user(currency, amount, existing_user):
     existing_portfolio.get_wallet(currency.code).withdraw(amount)
     base_currency = cfg.BASE_CURRENCY
     converse_way = currency.code + '_' + base_currency
+    crypto_service = api_clients.CoinGeckoClient()
+    fiat_service = api_clients.ExchangeRateApiClient()
+    storage_service = storage.StorageUpdater()
+    updater_service = updater.RatesUpdater(crypto_service, fiat_service, storage_service)
+    updater_service.run_update()
     rates_json = utils.load_json(cfg.RATES_FILE_PATH)
     if not rates_json:
         raise ValueError("Кэш валют пуст. Воспользуйтесь командой 'update-rates'.")

@@ -33,7 +33,17 @@ def ensure_files_exist():
                 else:
                     file.write(str(dict()))
 
+def ensure_api_key_set():
+    '''Проверяет, задан ли ключ API пользователем.'''
+    cfg = config.ParserConfig()
+    if not isinstance(cfg.EXCHANGERATE_API_KEY, str):
+        return False
+    return True
+
 def main():
     ensure_files_exist()
-    interface.run()
+    if ensure_api_key_set():
+        interface.run()
+    else:
+        print("Не удалось найти ключ API в переменных среды. Прекращение работы.")
     return 0

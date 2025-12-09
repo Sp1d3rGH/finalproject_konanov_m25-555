@@ -93,11 +93,6 @@ def run_loop(current_user, user_args, params, cfg):
                 elif user_args[i-1] in special_args and user_args[i] in special_args:
                     raise IOError(user_args[i-1] + ' ' + user_args[i] + ". "
                                   "Чтобы получить справку, вызовите 'help'.")
-            crypto_service = api_clients.CoinGeckoClient()
-            fiat_service = api_clients.ExchangeRateApiClient()
-            storage_service = storage.StorageUpdater()
-            updater_service = updater.RatesUpdater(crypto_service, fiat_service, storage_service)
-            updater_service.run_update()
             usecases.show_portfolio(input_currency, current_user)
             return None, None
         case "buy":
@@ -121,11 +116,6 @@ def run_loop(current_user, user_args, params, cfg):
                 elif user_args[i-1] in special_args and user_args[i] in special_args:
                     raise IOError(user_args[i-1] + ' ' + user_args[i] + ". "
                                   "Чтобы получить справку, вызовите 'help'.")
-            crypto_service = api_clients.CoinGeckoClient()
-            fiat_service = api_clients.ExchangeRateApiClient()
-            storage_service = storage.StorageUpdater()
-            updater_service = updater.RatesUpdater(crypto_service, fiat_service, storage_service)
-            updater_service.run_update()
             usecases.buy_by_user(input_currency, input_amount, current_user)
             return None, None
         case "sell":
@@ -149,11 +139,6 @@ def run_loop(current_user, user_args, params, cfg):
                 elif user_args[i-1] in special_args and user_args[i] in special_args:
                     raise IOError(user_args[i-1] + ' ' + user_args[i] + ". "
                                   "Чтобы получить справку, вызовите 'help'.")
-            crypto_service = api_clients.CoinGeckoClient()
-            fiat_service = api_clients.ExchangeRateApiClient()
-            storage_service = storage.StorageUpdater()
-            updater_service = updater.RatesUpdater(crypto_service, fiat_service, storage_service)
-            updater_service.run_update()
             usecases.sell_by_user(input_currency, input_amount, current_user)
             return None, None
         case "get-rate":
